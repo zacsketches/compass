@@ -1,0 +1,3 @@
+name "CP"
+I2C address
+helper int get_heading
