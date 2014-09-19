@@ -12,16 +12,19 @@ struct Compass_msg : public Message {
 
 	char* name;
 	int heading;
+	int filtered_heading;
 
 	//Minimal constructor
 	Compass_msg() : Message("compass") {
 		heading = 0;
+		filtered_heading = 0;
 	}
 
 	//assignment operator
 	Compass_msg& operator=(const Compass_msg& a) {
 		n = a.n;
 		heading = a.heading;
+		filtered_heading = a.filtered_heading;
 		return *this;
 	}
 
@@ -29,6 +32,8 @@ struct Compass_msg : public Message {
 	void print() {
 		Serial.print(F("\t\t\tHeading is: "));
 		Serial.println(heading);
+		Serial.print(F("\t\t\tFiltered Heading is: "));
+		Serial.println(filtered_heading);
 	}
 };
 #endif

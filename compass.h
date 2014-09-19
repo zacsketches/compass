@@ -4,6 +4,9 @@
 #define COMPASS_H SEP_2014
 
 #include <arduino.h>
+
+#include <Filter.h>
+
 #include <Sensor.h>
 #include <compass_msg.h>
 #include <compass_fb.h>
@@ -17,6 +20,7 @@ private:
 
 	// private data
 	bool invert_x;
+	Moving_average ma;
 	
 	//feedback object
 	Compass_fb<Compass_msg>& fb;
@@ -35,7 +39,8 @@ private:
 public:
 	//Constructor
 	Compass(Compass_fb<Compass_msg>& feedback, 
-		const int _i2c_address, 
+		const int _i2c_address,
+		const int filter_length = 1; 
 		bool _invert_x = false,
 		char* name = "CP");
 

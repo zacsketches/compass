@@ -71,10 +71,12 @@ int Compass::get_heading()
 }
 
 Compass::Compass(Compass_fb<Compass_msg>& feedback, 
-	const int _i2c_address, 
+	const int _i2c_address,
+	const int filter_length; 
 	bool _invert_x,
 	char* name )
-	:Sensor(name), fb(feedback), i2c_address(_i2c_address), invert_x(_invert_x)
+	:Sensor(name), fb(feedback), i2c_address(_i2c_address), invert_x(_invert_x),
+	ma(Moving_average(filter_length)
 {	
 }
 
@@ -102,6 +104,7 @@ void Compass::run()
 	static int new_heading;
 	new_heading = get_heading();
 	local_msg.heading = new_heading;
+	local_msg.filtered_heading = ma.filter(new_heading);
 	
 	update_feedback();
 }
