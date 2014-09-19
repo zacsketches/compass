@@ -8,6 +8,8 @@
 #include <compass_msg.h>
 #include <compass_fb.h>
 
+#define DEBUG_COMPASS 1
+
 class Compass : public Sensor {
 private:
 	//Available from the base class

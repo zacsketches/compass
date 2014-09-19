@@ -62,6 +62,11 @@ int Compass::get_heading()
       }
     }
 	
+	#if DEBUG_COMPASS == 1
+		Serial.print(F("From compass.get_heading(), Z is: "));
+		Serial.println(Z);
+	#endif
+	
 	return Z;
 }
 
@@ -70,6 +75,10 @@ Compass::Compass(Compass_fb<Compass_msg>& feedback,
 	bool _invert_x,
 	char* name )
 	:Sensor(name), fb(feedback), i2c_address(_i2c_address), invert_x(_invert_x)
+{	
+}
+
+bool Compass::attach() 
 {
 	//initialize I2C bus
     Wire.begin();  
@@ -81,26 +90,26 @@ Compass::Compass(Compass_fb<Compass_msg>& feedback,
     Wire.write(0x02); 
     Wire.write(0x00); 
 	Wire.endTransmission();
-	
-}
-
-bool Compass::attach() 
-{
-	/* Nothing to attach for this Sensor */
 }
 
 void Compass::update_feedback() 
 {
-	/* TODO: Implement update_feedback method */
+	fb.update(local_msg);
 }
 
 void Compass::run() 
 {
-	/* TODO: Implement run method */
+	static int new_heading;
+	new_heading = get_heading();
+	local_msg.heading = new_heading;
+	
+	update_feedback();
 }
 
 void Compass::config() 
 {
-	/* TODO: Implement config method */
+	Serial.print(F("\nCompass config:"));
+	Serial.print(F("\tconnected via I2C with address: "));
+	Serial.println(i2c_address, HEX);
 }
 

@@ -27,7 +27,8 @@ struct Compass_msg : public Message {
 
 	//print
 	void print() {
-		Serial.println(F("Edit compass_msg.h to implement a custom message"));
+		Serial.print(F("\t\t\tHeading is: "));
+		Serial.println(heading);
 	}
 };
 #endif
