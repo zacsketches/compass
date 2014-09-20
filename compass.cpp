@@ -6,13 +6,26 @@
 //************************************************************************
 //*                     CLASS COMPASS
 //************************************************************************
-int Compass::get_heading() 
+Compass::Compass(Compass_fb<Compass_msg>& feedback, 
+	const int _i2c_address,
+	const int filter_length, 
+	bool _invert_x,
+	char* name )
+	:Sensor(name), fb(feedback), i2c_address(_i2c_address), invert_x(_invert_x),
+	ma_x(Moving_average(filter_length)), ma_y(Moving_average(filter_length))
+{	
+	//calibration data from 18 Sep 2014 saved on RSNS laptop
+	x_off = 91;
+	x_sf = 1.0;
+	y_off = 153;
+	y_sf = 1.0786;
+}
+
+void Compass::read() 
 {
-	// based on the work of Jordan McConell from SparkFun Electronics
-
     int x, y, z, Z;  //triple axis data.  Z is heading
-
-    //Tell the HMC5883 where to begin reading data
+	
+	//Tell the HMC5883 where to begin reading data
     Wire.beginTransmission(i2c_address);
     Wire.write(0x03); //select register 3, X MSB register
     Wire.endTransmission();
@@ -27,6 +40,48 @@ int Compass::get_heading()
       y = Wire.read()<<8; //y msb
       y |= Wire.read();   //y lsb
     }
+
+	#if DEBUG_PRINT_CAL_DATA == 1
+		char buf[50];
+		sprintf(buf, "%d,\t%d", x, y);
+		Serial.println(buf);
+	#endif
+	
+	x = scale(x, Scale::x);
+	y = scale(y, Scale::y);
+	
+	set_raw_x(x);
+	set_raw_y(y);
+	
+	ma_x.filter(x);
+	ma_y.filter(y);
+
+	
+}
+
+int Compass::scale(int raw_val, Scale::val axis)
+{
+	int res = 0;
+	
+	if (axis == Scale::x){
+		res = x_sf * raw_val + x_off; 
+	}
+	if (axis == Scale::y) {
+		res = y_sf * raw_val + y_off;
+	}
+	
+	return res;
+	 
+}
+
+int Compass::get_heading() 
+{
+	// based on the work of Jordan McConell from SparkFun Electronics
+
+    int x, y, Z;  //triple axis data.  Z is heading
+
+	x = raw_x();
+	y = raw_y();
     
     //convert to heading
     if (x>0 && y==0) {   //000 degrees
@@ -63,21 +118,60 @@ int Compass::get_heading()
     }
 	
 	#if DEBUG_COMPASS == 1
-		Serial.print(F("From compass.get_heading(), Z is: "));
+		Serial.print(F("From compass.get_heading(), Z is:\t"));
 		Serial.println(Z);
 	#endif
 	
 	return Z;
 }
 
-Compass::Compass(Compass_fb<Compass_msg>& feedback, 
-	const int _i2c_address,
-	const int filter_length; 
-	bool _invert_x,
-	char* name )
-	:Sensor(name), fb(feedback), i2c_address(_i2c_address), invert_x(_invert_x),
-	ma(Moving_average(filter_length)
-{	
+int Compass::get_smooth_heading() 
+{
+    int x, y, Z;  //triple axis data.  Z is heading
+
+	x = ma_x.current();
+	y = ma_y.current();
+    
+    //convert to heading
+    if (x>0 && y==0) {   //000 degrees
+      Z = 0; 
+    }  
+    if (x>0 && y>0) {   //001-089 degrees
+      Z = (atan2(y, x)) * 180 / M_PI;
+    }
+    if (x==0 && y>0) {   //090 degrees
+      Z = 90;
+    }
+    if (x<0 && y>0) {    //91-179 degrees
+      Z = (atan2(y, x)) * 180 / M_PI;
+    }
+    if (x<0 && y==0) {   //180 degrees
+      Z = 180; 
+    }
+    if (x<0 && y<0) {    //181-269 degrees
+      Z = 360 + (atan2(y, x)) * 180 / M_PI;
+    }
+    if (x==0 && y<0) {   //270 degrees
+      Z = 270;
+    }
+    if (x>0 && y<0) {    //271-359 degrees
+     Z = 360 + (atan2(y, x)) * 180 / M_PI; 
+    }
+	
+    //Invert X if required by the sensor alignment in the project  
+    if (invert_x) {
+      Z = Z-180;
+      if (Z < 0 ) {
+        Z = 360 + Z; 
+      }
+    }
+	
+	#if DEBUG_COMPASS == 1
+		Serial.print(F("From compass.get_smooth_heading(), Z is:\t"));
+		Serial.println(Z);
+	#endif
+	
+	return Z;
 }
 
 bool Compass::attach() 
@@ -101,10 +195,9 @@ void Compass::update_feedback()
 
 void Compass::run() 
 {
-	static int new_heading;
-	new_heading = get_heading();
-	local_msg.heading = new_heading;
-	local_msg.filtered_heading = ma.filter(new_heading);
+	read();
+	local_msg.heading = get_heading();
+	local_msg.filtered_heading = get_smooth_heading();
 	
 	update_feedback();
 }
