@@ -1,25 +1,8 @@
-// Generateed by /Volumes/User_data/mybin/genstubs Version 1.1
-
 #include "compass.h"
-#include <Wire.h>
 
 //************************************************************************
 //*                     CLASS COMPASS
 //************************************************************************
-Compass::Compass(Compass_fb<Compass_msg>& feedback, 
-	const int _i2c_address,
-	const int filter_length, 
-	bool _invert_x,
-	char* name )
-	:Sensor(name), fb(feedback), i2c_address(_i2c_address), invert_x(_invert_x),
-	ma_x(Moving_average(filter_length)), ma_y(Moving_average(filter_length))
-{	
-	//calibration data from 18 Sep 2014 saved on RSNS laptop
-	x_off = 91;
-	x_sf = 1.0;
-	y_off = 153;
-	y_sf = 1.0786;
-}
 
 void Compass::read() 
 {
@@ -174,8 +157,14 @@ int Compass::get_smooth_heading()
 	return Z;
 }
 
-bool Compass::attach() 
+bool Compass::begin() 
 {
+	/*
+		TODO use compass begin method from compass cal bot because 
+		* it checks the device id to ensure there are good comms with the
+		* compass
+	*/
+	
 	//initialize I2C bus
     Wire.begin();  
 	
@@ -188,24 +177,27 @@ bool Compass::attach()
 	Wire.endTransmission();
 }
 
-void Compass::update_feedback() 
-{
-	fb.update(local_msg);
-}
-
 void Compass::run() 
 {
 	read();
 	local_msg.heading = get_heading();
-	local_msg.filtered_heading = get_smooth_heading();
+	//local_msg.heading = get_smooth_heading();
+	pub.publish();
 	
-	update_feedback();
 }
 
-void Compass::config() 
+void Compass::print() 
 {
-	Serial.print(F("\nCompass config:"));
+	Serial.print(F("Node id: "));
+	Serial.print(id());
+	Serial.print("\t");
+	Serial.print(name());   
 	Serial.print(F("\tconnected via I2C with address: "));
 	Serial.println(i2c_address, HEX);
+	Serial.print(F("\tPublishing to: "));
+	pub.publishing_where();
+	Serial.print(F("\tLocal msg is:"));
+	local_msg.print();
+	
 }
 

@@ -1,3 +1,10 @@
-name "CP"
+This file was originally written to be interpreted by my 
+scripts that generate the .h and .cpp files from simple 
+sensor definition files like the one below.
+
+The scripts are not compliant with the the new Glow
+Worm architecture.
+
+name "compass"
 I2C address
 helper int get_heading
